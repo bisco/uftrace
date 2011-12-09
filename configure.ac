@@ -16,15 +16,14 @@ fi
 CFLAGS=
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_LIBTOOL
+#AC_PROG_LIBTOOL
 
-AC_CHECK_PROG(GLIB_CONFIG, glib-config, glib-config)
-if test "x$GLIB_CONFIG" = x; then
-    AC_MSG_ERROR([Please install libglib1.2 development package])
+AC_CHECK_PROG(PKG_CONFIG, pkg-config, pkg-config)
+if test "x$PKG_CONFIG" = x; then
+    AC_MSG_ERROR([Please install pkg-config])
 fi
-CFLAGS="$CFLAGS `$GLIB_CONFIG --cflags`"
-CPPFLAGS="$CFLAGS `$GLIB_CONFIG --cflags`"
-LDFLAGS="$LDFLAGS `$GLIB_CONFIG --libs`"
+CFLAGS="$CFLAGS `$PKG_CONFIG glib-2.0 --cflags`"
+LDFLAGS="$LDFLAGS `$PKG_CONFIG glib-2.0 --libs`"
 
 # Checks for libraries.
 AC_CHECK_LIB([glib], [g_malloc])
@@ -37,7 +36,7 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h limits.h stdlib.h string.h sys/time.h syslog.h unistd.h])
 AC_CHECK_HEADERS(glib.h,, AC_MSG_ERROR([Please install libglib development package]))
 AC_CHECK_HEADERS(libelf.h,, AC_MSG_ERROR([Please install libelf development package]))
-AC_CHECK_HEADERS([libdwarf/libdwarf.h libdwarf/dwarf.h],, AC_MSG_ERROR([Please install libdwarf development package]))
+AC_CHECK_HEADERS([libdwarf.h dwarf.h],, AC_MSG_ERROR([Please install libdwarf development package]))
 
 for f in /usr/local/lib/libdwarf.a /usr/lib/libdwarf.a; do
     DWARF_LIBS=$f;
@@ -59,5 +58,4 @@ AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_CHECK_FUNCS([gettimeofday localtime_r setenv])
 
-AC_CONFIG_FILES([Makefile])
-AC_OUTPUT
+AC_OUTPUT(Makefile)
