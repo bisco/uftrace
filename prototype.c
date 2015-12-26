@@ -16,6 +16,8 @@
 #include <dwarf.h>
 #include "prototype.h"
 
+void types_free(GHashTable *types);
+
 int prototype_init(GHashTable *functions, const char *filename)
 {
     int fd;
@@ -444,7 +446,7 @@ static gboolean types_print_entry(gpointer key, gpointer value,
 {
     int i;
     type_t *type = value;
-    printf("%d: name=%s, size=%d\n", *(guint*)key, type->name, type->size);
+    printf("%d: name=%s, size=%zd\n", *(guint*)key, type->name, type->size);
     return 0;
 }
 

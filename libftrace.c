@@ -40,7 +40,7 @@ void ftrace_append_time(GString *line){
 
     gettimeofday(&tv,&tz);
     localtime_r(&(tv.tv_sec), &t);
-    g_string_sprintfa(line, "%02d:%02d:%02d.%06d ",
+    g_string_sprintfa(line, "%02d:%02d:%02d.%06ld ",
                       t.tm_hour, t.tm_min, t.tm_sec, tv.tv_usec);
 }
 
@@ -55,7 +55,7 @@ void ftrace_append_pid(GString *line){
     if(opt_threadid){
         g_string_sprintfa(line, "[%05d] ", getpid());
     }else{
-        g_string_sprintfa(line, "[%05d.%u] ", getpid(),  pthread_self());
+        g_string_sprintfa(line, "[%05d.%lu] ", getpid(),  (unsigned long)pthread_self());
     }
 }
 
@@ -223,7 +223,7 @@ defined(__powerpc) || defined(__powerpc__)
 
     func = (function_t*)g_hash_table_lookup(functions, &addr);
     if(!func){
-        g_string_sprintfa(line, "UNKNOWN<0x%x>()", addr);
+        g_string_sprintfa(line, "UNKNOWN<0x%lx>()", (unsigned long)addr);
         return;
     }
 
@@ -302,10 +302,10 @@ void __cyg_profile_func_enter(void *this, void *callsite)
     ftrace_append_function(line, this);
 
     if(opt_syslog){
-        syslog(LOG_INFO, line->str);
+        syslog(LOG_INFO, "%s", line->str);
     }else{
         g_string_append_c(line, '\n');
-        fprintf(fp, line->str);
+        fprintf(fp, "%s", line->str);
         fflush(fp);
     }
 }
@@ -336,7 +336,7 @@ pid_t fork()
     }    
     g_string_sprintfa(line, "fork() pid=%d", pid);
     g_string_append_c(line, '\n');
-    fprintf(fp, line->str);
+    fprintf(fp, "%s", line->str);
     fflush(fp);
     return(pid);
 }
@@ -358,14 +358,14 @@ int pthread_create(pthread_t *thread, pthread_attr_t * attr,
     }
     result=(*pthread_create_org)(thread, attr, start_routine, arg);
     if(thread){
-        g_string_sprintfa(line, "%-16s: result=%d TID=%u",
-                          "pthread_create()", result, *thread);
+        g_string_sprintfa(line, "%-16s: result=%d TID=%lu",
+                          "pthread_create()", result, (unsigned long)*thread);
     }else{
         g_string_sprintfa(line, "%-16s: result=%d       ",
-                          "pthread_create()", result, *thread);
+                          "pthread_create()", result);
     }
     g_string_append_c(line, '\n');
-    fprintf(fp, line->str);
+    fprintf(fp,"%s", line->str);
     fflush(fp);
     return(result);
 }
@@ -384,7 +384,7 @@ void pthread_exit(void *retval)
     }
     g_string_sprintfa(line, "%-16s: retval=%p", "pthread_exit()", retval);
     g_string_append_c(line, '\n');
-    fprintf(fp, line->str);
+    fprintf(fp, "%s", line->str);
     fflush(fp);
     (*pthread_exit_org)(retval);
     exit(0);
