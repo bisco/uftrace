@@ -9,7 +9,7 @@
 ## Build
 If you use glib 2.0 or higher, you should add ``CPPFLAGS=-DG_DISABLE_DEPRECATED``.
 ```sh
-./configure CPPFLAGS="-I/path/to/glib/include -DG_DISABLE_DEPRECATED -fPIC"
+./configure CPPFLAGS="$(pkg-config --cflags glib-2.0) -DG_DISABLE_DEPRECATED -fPIC"
 make
 make install
 ```
