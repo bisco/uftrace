@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <glib.h>
+#include <glib/ghash.h>
 #include <libelf.h>
 #include <libdwarf.h>
 #include <dwarf.h>

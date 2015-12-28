@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <glib.h>
+#include <glib/ghash.h>
 #include <libftrace.h>
 #include "prototype.h"
 #include <mcheck.h>
@@ -40,7 +41,7 @@ void ftrace_append_time(GString *line){
 
     gettimeofday(&tv,&tz);
     localtime_r(&(tv.tv_sec), &t);
-    g_string_sprintfa(line, "%02d:%02d:%02d.%06ld ",
+    g_string_append_printf(line, "%02d:%02d:%02d.%06ld ",
                       t.tm_hour, t.tm_min, t.tm_sec, tv.tv_usec);
 }
 
@@ -53,9 +54,9 @@ void ftrace_append_pid(GString *line){
     localtime_r(&(tv.tv_sec), &t);
 
     if(opt_threadid){
-        g_string_sprintfa(line, "[%05d] ", getpid());
+        g_string_append_printf(line, "[%05d] ", getpid());
     }else{
-        g_string_sprintfa(line, "[%05d.%lu] ", getpid(),  (unsigned long)pthread_self());
+        g_string_append_printf(line, "[%05d.%lu] ", getpid(),  (unsigned long)pthread_self());
     }
 }
 
@@ -66,62 +67,62 @@ void *ftrace_append_arg(GString *line, arg_t *arg, void *frame){
 
     switch(arg->type){
     case TYPE_POINTER:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "0x%p", frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "0x%p", frame);
         frame+=4;
         break;
     case TYPE_INT:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%d", *(int*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%d", *(int*)frame);
         frame+=4;
         break;
     case TYPE_UINT:
-        if(opt_type) g_string_sprintfa(line, "(%p)", arg->typename);
-        g_string_sprintfa(line, "%u", *(unsigned int*)frame);
+        if(opt_type) g_string_append_printf(line, "(%p)", arg->typename);
+        g_string_append_printf(line, "%u", *(unsigned int*)frame);
         frame+=4;
         break;
     case TYPE_CHAR:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%d", *(char*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%d", *(char*)frame);
         frame+=4;
         break;
     case TYPE_UCHAR:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%u", *(unsigned char*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%u", *(unsigned char*)frame);
         frame+=4;
         break;
     case TYPE_SHORT:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%d", *(short*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%d", *(short*)frame);
         frame+=4;
         break;
     case TYPE_USHORT:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%u", *(unsigned short*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%u", *(unsigned short*)frame);
         frame+=4;
         break;
     case TYPE_LONG:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%ld", *(long*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%ld", *(long*)frame);
         frame+=4;
         break;
     case TYPE_ULONG:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%ld", *(unsigned long*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%ld", *(unsigned long*)frame);
         frame+=4;
         break;
     case TYPE_LONGLONG:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%lld",  *(long long*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%lld",  *(long long*)frame);
         frame+=8;
         break;
     case TYPE_ULONGLONG:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%lld",  *(unsigned long long*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%lld",  *(unsigned long long*)frame);
         frame+=8;
         break;
     default:
-        g_string_sprintfa(line, "unknown, ...");
+        g_string_append_printf(line, "unknown, ...");
         return NULL;
     }
     return frame;
@@ -133,62 +134,62 @@ void *ftrace_append_arg(GString *line, arg_t *arg, void *frame){
 
     switch(arg->type){
     case TYPE_POINTER:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "0x%p", frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "0x%p", frame);
         frame-=4;
         break;
     case TYPE_INT:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%d", *(int*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%d", *(int*)frame);
         frame-=4;
         break;
     case TYPE_UINT:
-        if(opt_type) g_string_sprintfa(line, "(%p)", arg->typename);
-        g_string_sprintfa(line, "%u", *(unsigned int*)frame);
+        if(opt_type) g_string_append_printf(line, "(%p)", arg->typename);
+        g_string_append_printf(line, "%u", *(unsigned int*)frame);
         frame-=4;
         break;
     case TYPE_CHAR:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%d", *(char*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%d", *(char*)frame);
         frame-=4;
         break;
     case TYPE_UCHAR:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%u", *(unsigned char*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%u", *(unsigned char*)frame);
         frame-=4;
         break;
     case TYPE_SHORT:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%d", *(short*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%d", *(short*)frame);
         frame-=4;
         break;
     case TYPE_USHORT:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%u", *(unsigned short*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%u", *(unsigned short*)frame);
         frame-=4;
         break;
     case TYPE_LONG:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%ld", *(long*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%ld", *(long*)frame);
         frame-=8;
         break;
     case TYPE_ULONG:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%ld", *(unsigned long*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%ld", *(unsigned long*)frame);
         frame-=8;
         break;
     case TYPE_LONGLONG:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%lld",  *(long long*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%lld",  *(long long*)frame);
         frame-=8;
         break;
     case TYPE_ULONGLONG:
-        if(opt_type) g_string_sprintfa(line, "(%s)", arg->typename);
-        g_string_sprintfa(line, "%lld",  *(unsigned long long*)frame);
+        if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
+        g_string_append_printf(line, "%lld",  *(unsigned long long*)frame);
         frame-=8;
         break;
     default:
-        g_string_sprintfa(line, "unknown, ...");
+        g_string_append_printf(line, "unknown, ...");
         return NULL;
     }
 
@@ -198,7 +199,7 @@ void *ftrace_append_arg(GString *line, arg_t *arg, void *frame){
 #else
 
 void *ftrace_append_arg(GString *line, arg_t *arg, void *frame){
-    g_string_sprintfa(line, "unknown, ...");
+    g_string_append_printf(line, "unknown, ...");
     return NULL;
 }
 
@@ -223,11 +224,11 @@ defined(__powerpc) || defined(__powerpc__)
 
     func = (function_t*)g_hash_table_lookup(functions, &addr);
     if(!func){
-        g_string_sprintfa(line, "UNKNOWN<0x%lx>()", (unsigned long)addr);
+        g_string_append_printf(line, "UNKNOWN<0x%lx>()", (unsigned long)addr);
         return;
     }
 
-    g_string_sprintfa(line, "%s(", func->name);
+    g_string_append_printf(line, "%s(", func->name);
     args = func->args;
     while(args){
         arg = args->data;
@@ -249,10 +250,10 @@ defined(__powerpc) || defined(__powerpc__)
         }
         args = g_slist_next(args);
         if(args){
-            g_string_sprintfa(line, ", ");
+            g_string_append_printf(line, ", ");
         }
     }
-    g_string_sprintfa(line, ")");
+    g_string_append_printf(line, ")");
 }
 
 void __attribute__((constructor))ftrace_init()
@@ -334,7 +335,7 @@ pid_t fork()
     if(opt_pid){
         ftrace_append_pid(line);
     }    
-    g_string_sprintfa(line, "fork() pid=%d", pid);
+    g_string_append_printf(line, "fork() pid=%d", pid);
     g_string_append_c(line, '\n');
     fprintf(fp, "%s", line->str);
     fflush(fp);
@@ -358,10 +359,10 @@ int pthread_create(pthread_t *thread, pthread_attr_t * attr,
     }
     result=(*pthread_create_org)(thread, attr, start_routine, arg);
     if(thread){
-        g_string_sprintfa(line, "%-16s: result=%d TID=%lu",
+        g_string_append_printf(line, "%-16s: result=%d TID=%lu",
                           "pthread_create()", result, (unsigned long)*thread);
     }else{
-        g_string_sprintfa(line, "%-16s: result=%d       ",
+        g_string_append_printf(line, "%-16s: result=%d       ",
                           "pthread_create()", result);
     }
     g_string_append_c(line, '\n');
@@ -382,7 +383,7 @@ void pthread_exit(void *retval)
     if(opt_pid){
         ftrace_append_pid(line);
     }
-    g_string_sprintfa(line, "%-16s: retval=%p", "pthread_exit()", retval);
+    g_string_append_printf(line, "%-16s: retval=%p", "pthread_exit()", retval);
     g_string_append_c(line, '\n');
     fprintf(fp, "%s", line->str);
     fflush(fp);
