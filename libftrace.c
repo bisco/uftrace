@@ -31,7 +31,7 @@ FILE *fp;
 int opt_syslog = 0;
 int opt_time = 1;
 int opt_pid = 1;
-int opt_threadid = 1;
+int opt_threadid = 0;
 int opt_type = 0;
 
 void ftrace_append_time(GString *line){
@@ -54,9 +54,9 @@ void ftrace_append_pid(GString *line){
     localtime_r(&(tv.tv_sec), &t);
 
     if(opt_threadid){
-        g_string_append_printf(line, "[%05d] ", getpid());
+        g_string_append_printf(line, "[%05d.0x%lx] ", getpid(),  (unsigned long)pthread_self());
     }else{
-        g_string_append_printf(line, "[%05d.%lu] ", getpid(),  (unsigned long)pthread_self());
+        g_string_append_printf(line, "[%05d] ", getpid());
     }
 }
 
@@ -68,7 +68,7 @@ void *ftrace_append_arg(GString *line, arg_t *arg, void *frame){
     switch(arg->type){
     case TYPE_POINTER:
         if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
-        g_string_append_printf(line, "0x%p", frame);
+        g_string_append_printf(line, "%p", frame);
         frame+=4;
         break;
     case TYPE_INT:
@@ -135,7 +135,7 @@ void *ftrace_append_arg(GString *line, arg_t *arg, void *frame){
     switch(arg->type){
     case TYPE_POINTER:
         if(opt_type) g_string_append_printf(line, "(%s)", arg->typename);
-        g_string_append_printf(line, "0x%p", frame);
+        g_string_append_printf(line, "%p", frame);
         frame-=4;
         break;
     case TYPE_INT:
@@ -275,6 +275,11 @@ void __attribute__((constructor))ftrace_init()
         opt_syslog=0;
         fp = stderr;
     }
+
+    if(dtflag) {
+        opt_threadid = 1;
+    }
+
     functions = g_hash_table_new((GHashFunc)g_int_hash,
                                  (GCompareFunc)g_int_equal);
     prototype_init(functions, "/proc/self/exe");
