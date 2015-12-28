@@ -258,10 +258,12 @@ defined(__powerpc) || defined(__powerpc__)
 
 void __attribute__((constructor))ftrace_init()
 {
+    const char *dfpath = "./uftrace_output";
     const char *target = getenv("FTRACE_OUTPUT");
     const char *ftpath = getenv("FTRACE_PATH");
     const char *stflag = getenv("FTRACE_SPLIT_THREAD_S");
     const char *dtflag = getenv("FTRACE_SPLIT_THREAD_L");
+    char fname[PATH_MAX];
 
     if(target){
         if(!strcmp(target,"syslog")){
@@ -269,7 +271,23 @@ void __attribute__((constructor))ftrace_init()
             openlog("ftrace", LOG_CONS | LOG_PERROR, LOG_USER);
         }else{
             opt_syslog=0;
-            fp = stderr;
+            if(!strcmp(target, "file")) {
+                if(!ftpath){
+                    ftpath = dfpath;
+                }
+                if(stflag){
+                    sprintf(fname,"%s.%d.%u", ftpath, getpid(), pthread_self());
+                }else{
+                    sprintf(fname,"%s.%d", ftpath, getpid());
+                }
+                //fp = open(fname, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+                fp = fopen(fname,"a");
+                if(fp == NULL){
+                    fp = stderr;
+                }
+            } else {
+                fp = stderr;
+            }
         }
     }else{
         opt_syslog=0;
