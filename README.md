@@ -27,7 +27,7 @@ You can test uftrace by ``ftrace-test``.
 
 ```sh
 ftrace ./ftrace-test
-16:37:59.084267 [09244] main(0, 0x0x7fff2f310a38)
+16:37:59.084267 [09244] main(0, 0x7fff2f310a38)
 16:37:59.084393 [09244] arg_int1(10)
 16:37:59.084413 [09244] arg_int2(10, 11)
 16:37:59.084431 [09244] arg_int3(10, 11, 12)
@@ -52,7 +52,7 @@ ftrace ./ftrace-test
 16:37:59.084749 [09244] arg_ulonglong1(70)
 16:37:59.084764 [09244] arg_ulonglong2(70, 71)
 16:37:59.084781 [09244] arg_ulonglong3(70, 71, 72)
-16:37:59.084798 [09244] arg_test(100, 0x0x7fff2f3109f8)
+16:37:59.084798 [09244] arg_test(100, 0x7fff2f3109f8)
 ```
 
 ## Original README
