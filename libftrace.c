@@ -23,6 +23,7 @@
 #include <glib.h>
 #include <glib/ghash.h>
 #include <bfd.h>
+#include <regex.h>
 
 #include <libftrace.h>
 #include "prototype.h"
@@ -37,10 +38,14 @@ int opt_pid = 1;
 int opt_threadid = 0;
 int opt_type = 0;
 int opt_filename = 0;
+int opt_ignore = 0;
 
 static bfd *pbfd = NULL;
 static asymbol **symbols = NULL;
 static int nsymbol = 0;
+
+regex_t preg;
+
 
 void ftrace_append_time(GString *line){
     struct timeval  tv;
@@ -68,7 +73,11 @@ void ftrace_append_pid(GString *line){
     }
 }
 
-void ftrace_append_filename(GString *line, void* address){
+int ignore_filter_match(const char* pattern) {
+    return !(REG_NOMATCH == regexec(&preg, pattern, 0, NULL, 0));
+}
+
+int ftrace_append_filename(GString *line, void* address){
     const char *file_name;
     const char *function_name;
     int lineno;
@@ -77,9 +86,12 @@ void ftrace_append_filename(GString *line, void* address){
     int found = bfd_find_nearest_line(pbfd, section, symbols, (long)address, 
                                   &file_name, &function_name, &lineno);
     if(found && file_name != NULL && function_name != NULL) {
+        if(opt_ignore && ignore_filter_match(function_name)) return 0;
         g_string_append_printf(line, "(%s:%5d) ", basename(file_name), lineno);
     }
+    return 1;
 }
+
 #if defined(__i386) || defined(__i386__) || \
 defined(__powerpc) || defined(__powerpc__)
 
@@ -225,7 +237,7 @@ void *ftrace_append_arg(GString *line, arg_t *arg, void *frame){
 
 #endif
 
-void ftrace_append_function(GString *line, void *addr){
+int ftrace_append_function(GString *line, void *addr){
     function_t *func;
     char *name;
     void *frame;
@@ -247,6 +259,8 @@ defined(__powerpc) || defined(__powerpc__)
         g_string_append_printf(line, "UNKNOWN<0x%lx>()", (unsigned long)addr);
         return;
     }
+
+    if(opt_ignore && ignore_filter_match(func->name)) return 0;
 
     g_string_append_printf(line, "%s(", func->name);
     args = func->args;
@@ -274,6 +288,7 @@ defined(__powerpc) || defined(__powerpc__)
         }
     }
     g_string_append_printf(line, ")");
+    return 1;
 }
 
 void init_symbols(){
@@ -285,6 +300,14 @@ void init_symbols(){
     nsymbol = bfd_canonicalize_symtab(pbfd, symbols);
 }
 
+void init_ignore(const char* pattern){
+    int err = regcomp(&preg, pattern, REG_EXTENDED|REG_ICASE|REG_NOSUB|REG_NEWLINE);
+    if(err) {
+        perror("regex compile");
+        exit(-1);
+    }
+}
+
 void __attribute__((constructor))ftrace_init()
 {
     const char *dfpath = "./uftrace_output";
@@ -293,6 +316,8 @@ void __attribute__((constructor))ftrace_init()
     const char *stflag = getenv("FTRACE_SPLIT_THREAD_S");
     const char *dtflag = getenv("FTRACE_SPLIT_THREAD_L");
     const char *dfnameflag = getenv("FTRACE_PRINT_FILENAME");
+    const char *ignoreflag = getenv("FTRACE_FILTER_IGNORE");
+    const char *ignorepat  = getenv("FTRACE_FILTER_IGNORE_PATTERN");
     char fname[PATH_MAX];
 
     if(target){
@@ -332,6 +357,11 @@ void __attribute__((constructor))ftrace_init()
         init_symbols();
     }
 
+    if(ignoreflag) {
+        opt_ignore = 1;
+        init_ignore(ignorepat);
+    }
+
     functions = g_hash_table_new((GHashFunc)g_int_hash,
                                  (GCompareFunc)g_int_equal);
     prototype_init(functions, "/proc/self/exe");
@@ -349,6 +379,7 @@ void __attribute__((destructor))ftrace_finish()
 void __cyg_profile_func_enter(void *this, void *callsite)
 {
     GString *line = g_string_new(NULL);
+    int print_ok = 1;
 
     if(opt_time){
         ftrace_append_time(line);
@@ -357,14 +388,13 @@ void __cyg_profile_func_enter(void *this, void *callsite)
         ftrace_append_pid(line);
     }
     if(opt_filename) {
-        ftrace_append_filename(line, this);
+        print_ok = ftrace_append_filename(line, this);
     }
+    print_ok = ftrace_append_function(line, this);
 
-    ftrace_append_function(line, this);
-
-    if(opt_syslog){
+    if(print_ok && opt_syslog){
         syslog(LOG_INFO, "%s", line->str);
-    }else{
+    }else if(print_ok && !(opt_syslog)){
         g_string_append_c(line, '\n');
         fprintf(fp, "%s", line->str);
         fflush(fp);
