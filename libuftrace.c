@@ -1,5 +1,5 @@
 /*
- * libftrace.c
+ * libftrace.c => rename to libuftrace.c
  * $Id: libftrace.c,v 1.6 2007/06/19 01:33:43 hamano Exp $
  * This program can be distributed under the terms of the GNU GPL.
  * See the file COPYING.
@@ -25,7 +25,7 @@
 #include <bfd.h>
 #include <regex.h>
 
-#include <libftrace.h>
+#include <libuftrace.h>
 #include "prototype.h"
 #include <mcheck.h>
 

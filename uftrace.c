@@ -1,5 +1,5 @@
 /*
- * ftrace.c
+ * ftrace.c => rename uftrace.c
  * $Id: ftrace.c,v 1.10 2007/06/15 13:24:54 hamano Exp $
  * This program can be distributed under the terms of the GNU GPL.
  * See the file COPYING.
@@ -23,8 +23,8 @@
 
 void usage()
 {
-    printf("ftrace version %s\n", VERSION);
-    printf("usage: ftrace [-s] [-o file] [-t] [-T] [-l] [-f regex_pattern] command [arg ...]\n");
+    printf("uftrace version %s\n", VERSION);
+    printf("usage: uftrace [-s] [-o file] [-t] [-T] [-l] [-f regex_pattern] command [arg ...]\n");
     printf("option\n");
     printf("  -s   : output to syslog\n");
     printf("  -o   : output to file   (FileName: file.pid)\n");
@@ -40,7 +40,7 @@ int main(int argc,char *argv[])
     int i,j;
     char so[PATH_MAX];
 
-    sprintf(so, "%s/libftrace.so", FTRACE_LIB);
+    sprintf(so, "%s/libuftrace.so", FTRACE_LIB);
     setenv("LD_PRELOAD", so, 1);
 
     if(argc == 1){

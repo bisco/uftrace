@@ -9,6 +9,6 @@ Makefile
 *.so
 *.log
 *.scan
-ftrace
-ftrace-test
+uftrace
+uftrace-test
 tags

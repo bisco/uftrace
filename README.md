@@ -14,19 +14,17 @@ flags.
 - binutils
 
 ## Build
-If you use glib 2.0 or higher, you should add ``CPPFLAGS=-DG_DISABLE_DEPRECATED``.
-
 ```sh
-./configure CPPFLAGS="$(pkg-config --cflags glib-2.0) -DG_DISABLE_DEPRECATED -fPIC"
+./configure 
 make
 sudo make install
 ```
 
 ## How to test
-You can test uftrace by ``ftrace-test``.
+You can test uftrace by ``uftrace-test``.
 
 ```sh
-ftrace ./ftrace-test
+uftrace ./uftrace-test
 16:37:59.084267 [09244] main(0, 0x7fff2f310a38)
 16:37:59.084393 [09244] arg_int1(10)
 16:37:59.084413 [09244] arg_int2(10, 11)

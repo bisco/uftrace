@@ -1,16 +1,16 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.59)
-AC_INIT(ftrace, 0.93, BUG-REPORT-ADDRESS)
-AC_CONFIG_SRCDIR([ftrace-test.c])
+AC_PREREQ([2.69])
+AC_INIT(uftrace, 0.94, BUG-REPORT-ADDRESS)
+AC_CONFIG_SRCDIR([uftrace-test.c])
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(dist-bzip2)
 
 if test "x$prefix" != xNONE; then
-  AC_DEFINE_UNQUOTED(FTRACE_LIB, "${prefix}/lib/ftrace", [libdir])
+  AC_DEFINE_UNQUOTED(FTRACE_LIB, "${prefix}/lib/uftrace", [libdir])
 else
-  AC_DEFINE_UNQUOTED(FTRACE_LIB, "${ac_default_prefix}/lib/ftrace", [libdir])
+  AC_DEFINE_UNQUOTED(FTRACE_LIB, "${ac_default_prefix}/lib/uftrace", [libdir])
 fi
 
 CFLAGS=
@@ -22,7 +22,9 @@ AC_CHECK_PROG(PKG_CONFIG, pkg-config, pkg-config)
 if test "x$PKG_CONFIG" = x; then
     AC_MSG_ERROR([Please install pkg-config])
 fi
-CFLAGS="$CFLAGS `$PKG_CONFIG glib-2.0 --cflags`"
+CFLAGS="$CFLAGS `$PKG_CONFIG glib-2.0 --cflags` -fPIC -DG_DISABLE_DEPRECATED"
+CXXFLAGS="$CFLAGS `$PKG_CONFIG glib-2.0 --cflags` -fPIC -DG_DISABLE_DEPRECATED"
+CPPFLAGS="$CFLAGS `$PKG_CONFIG glib-2.0 --cflags` -fPIC -DG_DISABLE_DEPRECATED"
 LDFLAGS="$LDFLAGS `$PKG_CONFIG glib-2.0 --libs`"
 
 # Checks for libraries.
@@ -30,6 +32,8 @@ AC_CHECK_LIB([glib], [g_malloc])
 AC_CHECK_LIB([elf], [elf_version])
 AC_CHECK_LIB([dl], [dlsym])
 AC_CHECK_LIB([pthread], [pthread_self])
+AC_CHECK_LIB([bfd], [bfd_openr])
+AC_CHECK_LIB([dwarf], [dwarf_elf_init])
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -38,7 +42,7 @@ AC_CHECK_HEADERS(glib.h,, AC_MSG_ERROR([Please install libglib development packa
 AC_CHECK_HEADERS(libelf.h,, AC_MSG_ERROR([Please install libelf development package]))
 AC_CHECK_HEADERS([libdwarf.h dwarf.h],, AC_MSG_ERROR([Please install libdwarf development package]))
 
-for f in /usr/local/lib/libdwarf.a /usr/lib/libdwarf.a; do
+for f in /usr/local/lib/libdwarf.so /usr/lib/libdwarf.so; do
     DWARF_LIBS=$f;
     if test -f $DWARF_LIBS; then
         break;
@@ -56,6 +60,7 @@ AC_STRUCT_TM
 # Checks for library functions.
 AC_FUNC_FORK
 AC_FUNC_MALLOC
-AC_CHECK_FUNCS([gettimeofday localtime_r setenv])
+AC_CHECK_FUNCS([gettimeofday localtime_r memset regcomp setenv strdup])
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
