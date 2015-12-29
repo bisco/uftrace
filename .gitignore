@@ -11,3 +11,4 @@ Makefile
 *.scan
 ftrace
 ftrace-test
+tags

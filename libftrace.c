@@ -22,9 +22,12 @@
 #include <sys/time.h>
 #include <glib.h>
 #include <glib/ghash.h>
+#include <bfd.h>
+
 #include <libftrace.h>
 #include "prototype.h"
 #include <mcheck.h>
+
 
 GHashTable *functions;
 FILE *fp;
@@ -33,6 +36,11 @@ int opt_time = 1;
 int opt_pid = 1;
 int opt_threadid = 0;
 int opt_type = 0;
+int opt_filename = 0;
+
+static bfd *pbfd = NULL;
+static asymbol **symbols = NULL;
+static int nsymbol = 0;
 
 void ftrace_append_time(GString *line){
     struct timeval  tv;
@@ -60,6 +68,18 @@ void ftrace_append_pid(GString *line){
     }
 }
 
+void ftrace_append_filename(GString *line, void* address){
+    const char *file_name;
+    const char *function_name;
+    int lineno;
+    
+    asection *section = bfd_get_section_by_name(pbfd, ".debug_info");
+    int found = bfd_find_nearest_line(pbfd, section, symbols, (long)address, 
+                                  &file_name, &function_name, &lineno);
+    if(found && file_name != NULL && function_name != NULL) {
+        g_string_append_printf(line, "(%s:%5d) ", basename(file_name), lineno);
+    }
+}
 #if defined(__i386) || defined(__i386__) || \
 defined(__powerpc) || defined(__powerpc__)
 
@@ -256,6 +276,15 @@ defined(__powerpc) || defined(__powerpc__)
     g_string_append_printf(line, ")");
 }
 
+void init_symbols(){
+    int size;
+    pbfd = bfd_openr("/proc/self/exe", NULL);
+    bfd_check_format(pbfd, bfd_object);
+    size = bfd_get_symtab_upper_bound(pbfd);
+    symbols = (asymbol **)malloc(size);
+    nsymbol = bfd_canonicalize_symtab(pbfd, symbols);
+}
+
 void __attribute__((constructor))ftrace_init()
 {
     const char *dfpath = "./uftrace_output";
@@ -263,6 +292,7 @@ void __attribute__((constructor))ftrace_init()
     const char *ftpath = getenv("FTRACE_PATH");
     const char *stflag = getenv("FTRACE_SPLIT_THREAD_S");
     const char *dtflag = getenv("FTRACE_SPLIT_THREAD_L");
+    const char *dfnameflag = getenv("FTRACE_PRINT_FILENAME");
     char fname[PATH_MAX];
 
     if(target){
@@ -280,7 +310,6 @@ void __attribute__((constructor))ftrace_init()
                 }else{
                     sprintf(fname,"%s.%d", ftpath, getpid());
                 }
-                //fp = open(fname, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
                 fp = fopen(fname,"a");
                 if(fp == NULL){
                     fp = stderr;
@@ -296,6 +325,11 @@ void __attribute__((constructor))ftrace_init()
 
     if(dtflag) {
         opt_threadid = 1;
+    }
+
+    if(dfnameflag) {
+        opt_filename = 1;
+        init_symbols();
     }
 
     functions = g_hash_table_new((GHashFunc)g_int_hash,
@@ -321,6 +355,9 @@ void __cyg_profile_func_enter(void *this, void *callsite)
     }
     if(opt_pid){
         ftrace_append_pid(line);
+    }
+    if(opt_filename) {
+        ftrace_append_filename(line, this);
     }
 
     ftrace_append_function(line, this);

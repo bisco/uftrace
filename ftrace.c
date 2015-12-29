@@ -24,12 +24,13 @@
 void usage()
 {
     printf("ftrace version %s\n", VERSION);
-    printf("usage: ftrace [-s] [-o file] [-t] [-T] command [arg ...]\n");
+    printf("usage: ftrace [-s] [-o file] [-t] [-T] [-f] command [arg ...]\n");
     printf("option\n");
     printf("  -s   : output to syslog\n");
     printf("  -o   : output to file   (FileName: file.pid)\n");
     printf("  -t   : with '-o' option (FileName: file.pid.thread_id)\n");
-    printf("  -T   : thread_id added to the output format of pid.\n\n");
+    printf("  -T   : thread_id added to the output format of pid.\n");
+    printf("  -f   : file name and line no. added to the output\n\n");
 }
 
 int main(int argc,char *argv[])
@@ -60,6 +61,9 @@ int main(int argc,char *argv[])
                 break;
             case 'T':
                 setenv("FTRACE_SPLIT_THREAD_L","1",1);
+                break;
+            case 'f':
+                setenv("FTRACE_PRINT_FILENAME","1",1);
                 break;
             case 'h':
                 usage();
