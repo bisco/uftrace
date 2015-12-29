@@ -12,3 +12,4 @@ Makefile
 uftrace
 uftrace-test
 tags
+compile
