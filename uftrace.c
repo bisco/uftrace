@@ -32,6 +32,7 @@ void usage()
     printf("  -T   : thread_id added to the output format of pid.\n");
     printf("  -l   : file name and line no. added to the output\n");
     printf("  -f   : select non-matching output \n");
+    printf("  -e   : output info when exit function \n");
     printf("\n");
 }
 
@@ -70,6 +71,9 @@ int main(int argc,char *argv[])
             case 'f':
                 setenv("FTRACE_FILTER_IGNORE","1",1);
                 setenv("FTRACE_FILTER_IGNORE_PATTERN",   argv[++i], 1);
+                break;
+            case 'e':
+                setenv("FTRACE_EXIT_OUTPUT","1",1);
                 break;
             case 'h':
                 usage();

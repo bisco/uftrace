@@ -39,6 +39,7 @@ int opt_threadid = 0;
 int opt_type = 0;
 int opt_filename = 0;
 int opt_ignore = 0;
+int opt_exit = 0;
 
 static bfd *pbfd = NULL;
 static asymbol **symbols = NULL;
@@ -247,11 +248,11 @@ int ftrace_append_function(GString *line, void *addr){
 
 #if defined(__i386) || defined(__i386__) || \
 defined(__powerpc) || defined(__powerpc__)
-    frame = __builtin_frame_address(2) + 8;
+    frame = __builtin_frame_address(3) + 8;
 #elif defined(__x86_64) || defined(__x86_64__)
-    frame = __builtin_frame_address(2) - 4;
+    frame = __builtin_frame_address(3) - 4;
 #else
-    frame = __builtin_frame_address(2) + 8;
+    frame = __builtin_frame_address(3) + 8;
 #endif
 
     func = (function_t*)g_hash_table_lookup(functions, &addr);
@@ -318,6 +319,7 @@ void __attribute__((constructor))ftrace_init()
     const char *dfnameflag = getenv("FTRACE_PRINT_FILENAME");
     const char *ignoreflag = getenv("FTRACE_FILTER_IGNORE");
     const char *ignorepat  = getenv("FTRACE_FILTER_IGNORE_PATTERN");
+    const char *exitflag  = getenv("FTRACE_EXIT_OUTPUT");
     char fname[PATH_MAX];
 
     if(target){
@@ -362,6 +364,10 @@ void __attribute__((constructor))ftrace_init()
         init_ignore(ignorepat);
     }
 
+    if(exitflag) {
+        opt_exit = 1;
+    }
+
     functions = g_hash_table_new((GHashFunc)g_int_hash,
                                  (GCompareFunc)g_int_equal);
     prototype_init(functions, "/proc/self/exe");
@@ -376,7 +382,7 @@ void __attribute__((destructor))ftrace_finish()
     fclose(fp);
 }
 
-void __cyg_profile_func_enter(void *this, void *callsite)
+void cyg_profile_func_generic(void *this, void *callsite, const char* ent_or_exit)
 {
     GString *line = g_string_new(NULL);
     int print_ok = 1;
@@ -390,6 +396,10 @@ void __cyg_profile_func_enter(void *this, void *callsite)
     if(opt_filename) {
         print_ok = ftrace_append_filename(line, this);
     }
+    if(opt_exit) {
+        g_string_append_printf(line, "%s", ent_or_exit);
+    }
+
     print_ok = ftrace_append_function(line, this);
 
     if(print_ok && opt_syslog){
@@ -401,8 +411,16 @@ void __cyg_profile_func_enter(void *this, void *callsite)
     }
 }
 
+
+void __cyg_profile_func_enter(void *this, void *callsite)
+{
+    cyg_profile_func_generic(this, callsite, "enter ");
+}
+
 void __cyg_profile_func_exit(void *this, void *callsite)
 {
+    if(!opt_exit) return;
+    cyg_profile_func_generic(this, callsite, "exit  ");
 }
 
 pid_t fork()
