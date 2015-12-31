@@ -58,7 +58,7 @@ uftrace ./uftrace-test
 You can see simple help by ``uftrace -h``
 
 ## Options and Examples
--``-l`` option adds file name and line no to output
+- ``-l`` option adds file name and line no to output
 
 ```sh
 $ uftrace -l ./uftrace-test
@@ -68,7 +68,7 @@ $ uftrace -l ./uftrace-test
 (snipped)
 ```
 
--``-T`` option adds thread id to output
+- ``-T`` option adds thread id to output
 
 ```sh
 $ uftrace -l -T ./uftrace-test
@@ -81,7 +81,7 @@ $ uftrace -l -T ./uftrace-test
 (snipped)
 ```
 
--``-e`` option enables uftrace to output when exit function
+- ``-e`` option enables uftrace to output when exit function
 
 ```sh
 $ uftrace -l -T -e ./uftrace-test
