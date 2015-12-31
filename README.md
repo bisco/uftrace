@@ -1,10 +1,10 @@
 # uftrace - A simple function call tracer for user programs
 
 ## About
-ftrace is a program that simply runs the specified command until it
+uftrace is a program that simply runs the specified command until it
 exits. It intercepts and records the user define function calls which are
 called by the executed process. 
-This command should be compiled with -g and -finstrument-functions
+This command should be compiled with _-g_ and _-finstrument-functions_
 flags.
 
 ## Requirements
@@ -20,8 +20,10 @@ make
 sudo make install
 ```
 
-## How to test
-You can test uftrace by ``uftrace-test``.
+## How to use
+1. build your program with ``-g -finstrument-functions``
+1. run your program with uftrace command like this: ``uftrace <your-program> <your program args>``
+1. uftrace shows ``HH:MM:SS.SSSSSS [pid] funcname(args)`` such as below
 
 ```sh
 uftrace ./uftrace-test
@@ -53,31 +55,63 @@ uftrace ./uftrace-test
 16:37:59.084798 [09244] arg_test(100, 0x7fff2f3109f8)
 ```
 
-## Original README
+You can see simple help by ``uftrace -h``
 
+## Options and Examples
+-``-l`` option adds file name and line no to output
+
+```sh
+$ uftrace -l ./uftrace-test
+16:45:49.183697 [07612] (uftrace-test.c:  140) main(1, 0xbf872114)
+16:45:49.184456 [07612] (uftrace-test.c:   40) arg_int1(10)
+16:45:49.184600 [07612] (uftrace-test.c:   36) arg_int2(10, 11)
+(snipped)
 ```
-                   ftrace - A function call tracer
 
-$Id: README,v 1.6 2007/06/13 04:38:53 hamano Exp $
+-``-T`` option adds thread id to output
 
-ftrace is a program that simply runs the specified command until it
-exits. It intercepts and records the user define function calls which are
-called by the executed process. 
-This command should be compiled with -g and -finstrument-functions
-flags.
-
-* Requirements
-  libglib-1.2
-  libelf
-  
-* Build
-  $ ./configure
-  $ make
-  # make install
-
-* Usage
-  ftrace [ command [ arg ...  ] ]
+```sh
+$ uftrace -l -T ./uftrace-test
+16:47:32.000872 [07666.0xb7232700] (uftrace-test.c:  140) enter main(1, 0xbfe35034)
+                       ^^^^^^^^^^thread id
+                 ^^^^^pid
+16:47:32.001920 [07666.0xb7232700] (uftrace-test.c:   40) enter arg_int1(10)
+16:47:32.002073 [07666.0xb7232700] (uftrace-test.c:   36) enter arg_int2(10, 11)
+16:47:32.002215 [07666.0xb7232700] (uftrace-test.c:   28) enter arg_int3(10, 11, 12)
+(snipped)
 ```
+
+-``-e`` option enables uftrace to output when exit function
+
+```sh
+$ uftrace -l -T -e ./uftrace-test
+16:47:32.000872 [07666.0xb7232700] (uftrace-test.c:  140) enter main(1, 0xbfe35034)
+16:47:32.001920 [07666.0xb7232700] (uftrace-test.c:   40) enter arg_int1(10)
+16:47:32.002073 [07666.0xb7232700] (uftrace-test.c:   36) enter arg_int2(10, 11)
+16:47:32.002215 [07666.0xb7232700] (uftrace-test.c:   28) enter arg_int3(10, 11, 12)
+16:47:32.002362 [07666.0xb7232700] (uftrace-test.c:   28) exit  arg_int3(10, 11, 12)
+16:47:32.002507 [07666.0xb7232700] (uftrace-test.c:   36) exit  arg_int2(10, 11)
+16:47:32.002644 [07666.0xb7232700] (uftrace-test.c:   40) exit  arg_int1(10)
+16:47:32.002776 [07666.0xb7232700] (uftrace-test.c:   52) enter arg_uint1(10)
+(snipped)
+```
+
+- ``-f <regex pattern>`` option filter output matching ``<regex pattern>``. ``<regex pattern>`` matches file name and or function name.
+
+```sh
+$ uftrace -l -T -f "_int" ./uftrace-test # filter arg_int* before arg_uint*
+17:16:48.067302 [08301.0xb7237700] (uftrace-test.c:  140) main(1, 0xbfb7dc44)
+17:16:48.068951 [08301.0xb7237700] (uftrace-test.c:   52) arg_uint1(10)
+17:16:48.069196 [08301.0xb7237700] (uftrace-test.c:   48) arg_uint2(10, 11)
+17:16:48.069438 [08301.0xb7237700] (uftrace-test.c:   45) arg_uint3(10, 11, 12)
+17:16:48.069691 [08301.0xb7237700] (uftrace-test.c:   64) arg_char1(20)
+(snipped)
+```
+- ``-o <file_prefix>`` option output result to file(file name: ``<file_prefix>``.pid)
+ - ``-t`` add thread id to file name (valid with ``-o`` option, file name: ``<file_prefix>``.pid.threadid)
+- ``-s`` option output result to syslog
+
+
 
 ## Authors
 ### Original ftrace authors
