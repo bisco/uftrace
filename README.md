@@ -111,6 +111,14 @@ $ uftrace -l -T -f "_int" ./uftrace-test # filter arg_int* before arg_uint*
  - ``-t`` add thread id to file name (valid with ``-o`` option, file name: ``<file_prefix>``.pid.threadid)
 - ``-s`` option output result to syslog
 
+## TODO
+- add call stack level filter
+- add nest-exclude filter
+- more stability, more test
+- test automation
+- support RHEL family (CentOS, etc.)
+- glib-free
+
 
 
 ## Authors

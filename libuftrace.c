@@ -24,6 +24,7 @@
 #include <glib/ghash.h>
 #include <bfd.h>
 #include <regex.h>
+#include <errno.h>
 
 #include <libuftrace.h>
 #include "prototype.h"
@@ -40,12 +41,18 @@ int opt_type = 0;
 int opt_filename = 0;
 int opt_ignore = 0;
 int opt_exit = 0;
+int opt_start_depth = 0;
+int opt_max_depth = 0;
 
 static bfd *pbfd = NULL;
 static asymbol **symbols = NULL;
 static int nsymbol = 0;
 
 regex_t preg;
+
+int start_depth = 0;
+int max_depth = 0;
+int cur_depth = 0;
 
 
 void ftrace_append_time(GString *line){
@@ -309,6 +316,22 @@ void init_ignore(const char* pattern){
     }
 }
 
+void init_start_depth(const char* depth) {
+    start_depth = (int)strtol(depth, NULL, 0);
+    if(start_depth == EINVAL || start_depth == ERANGE) {
+        perror("start_depth");
+        exit(-1);
+    }
+}
+
+void init_max_depth(const char* depth) {
+    max_depth = (int)strtol(depth, NULL, 0);
+    if(max_depth == EINVAL || max_depth == ERANGE) {
+        perror("max_depth");
+        exit(-1);
+    }
+}
+
 void __attribute__((constructor))ftrace_init()
 {
     const char *dfpath = "./uftrace_output";
@@ -320,6 +343,10 @@ void __attribute__((constructor))ftrace_init()
     const char *ignoreflag = getenv("FTRACE_FILTER_IGNORE");
     const char *ignorepat  = getenv("FTRACE_FILTER_IGNORE_PATTERN");
     const char *exitflag  = getenv("FTRACE_EXIT_OUTPUT");
+    const char *start_depth_flag  = getenv("FTRACE_FILTER_START_DEPTH");
+    const char *start_depth_env  = getenv("FTRACE_START_DEPTH");
+    const char *max_depth_flag  = getenv("FTRACE_FILTER_MAX_DEPTH");
+    const char *max_depth_env  = getenv("FTRACE_MAX_DEPTH");
     char fname[PATH_MAX];
 
     if(target){
@@ -366,6 +393,16 @@ void __attribute__((constructor))ftrace_init()
 
     if(exitflag) {
         opt_exit = 1;
+    }
+
+    if(start_depth_flag) {
+        opt_start_depth = 1;
+        init_start_depth(start_depth_env);
+    }
+
+    if(max_depth_flag) {
+        opt_max_depth = 1;
+        init_max_depth(max_depth_env);
     }
 
     functions = g_hash_table_new((GHashFunc)g_int_hash,
