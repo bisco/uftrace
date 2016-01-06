@@ -112,12 +112,10 @@ $ uftrace -l -T -f "_int" ./uftrace-test # filter arg_int* before arg_uint*
 - ``-s`` option output result to syslog
 
 ## TODO
-- add call stack level filter
 - add nest-exclude filter
 - more stability, more test
 - test automation
 - support RHEL family (CentOS, etc.)
-- glib-free
 
 
 
