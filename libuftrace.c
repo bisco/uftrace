@@ -54,6 +54,8 @@ int start_depth = 0;
 int max_depth = 0;
 int cur_depth = 0;
 
+int opt_noarg = 0;
+
 
 void ftrace_append_time(GString *line){
     struct timeval  tv;
@@ -272,6 +274,10 @@ defined(__powerpc) || defined(__powerpc__)
     }
 
     if(opt_ignore && ignore_filter_match(func->name)) return 0;
+    if(opt_noarg) {
+        g_string_append_printf(line, "%s", func->name);
+        return 1;
+    }
 
     g_string_append_printf(line, "%s(", func->name);
     args = func->args;
@@ -343,6 +349,7 @@ void __attribute__((constructor))ftrace_init()
     const char *start_depth_env  = getenv("FTRACE_START_DEPTH");
     const char *max_depth_flag  = getenv("FTRACE_FILTER_MAX_DEPTH");
     const char *max_depth_env  = getenv("FTRACE_MAX_DEPTH");
+    const char *noargflag  = getenv("FTRACE_NOARG");
     char fname[PATH_MAX];
 
     if(target){
@@ -399,6 +406,10 @@ void __attribute__((constructor))ftrace_init()
     if(max_depth_flag) {
         opt_max_depth = 1;
         max_depth = init_depth(max_depth_env);
+    }
+
+    if(noargflag) {
+        opt_noarg = 1;
     }
 
     functions = g_hash_table_new((GHashFunc)g_int_hash,

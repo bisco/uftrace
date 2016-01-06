@@ -33,8 +33,9 @@ void usage()
     printf("  -l   : file name and line no. added to the output\n");
     printf("  -f   : select non-matching output \n");
     printf("  -e   : output info when exit function \n");
-    printf("  -b   : stop tracing smaller than <stack_depth> \n");
-    printf("  -d   : stop tracing larger than <stack_depth>\n");
+    printf("  -b   : don't trace when current stack depth is smaller start_depth\n");
+    printf("  -d   : don't trace when current stack depth is larger than max_depth\n");
+    printf("  -a   : not output args\n");
     printf("\n");
 }
 
@@ -84,6 +85,9 @@ int main(int argc,char *argv[])
                 break;
             case 'e':
                 setenv("FTRACE_EXIT_OUTPUT","1",1);
+                break;
+            case 'a':
+                setenv("FTRACE_NOARG","1",1);
                 break;
             case 'h':
                 usage();
