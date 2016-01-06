@@ -24,7 +24,7 @@
 void usage()
 {
     printf("uftrace version %s\n", VERSION);
-    printf("usage: uftrace [-s] [-o file] [-t] [-T] [-l] [-f regex_pattern] command [arg ...]\n");
+    printf("usage: uftrace [-s] [-o file] [-t] [-T] [-l] [-f regex_pattern] [-b int] [-d int] command [arg ...]\n");
     printf("option\n");
     printf("  -s   : output to syslog\n");
     printf("  -o   : output to file   (FileName: file.pid)\n");
@@ -33,6 +33,8 @@ void usage()
     printf("  -l   : file name and line no. added to the output\n");
     printf("  -f   : select non-matching output \n");
     printf("  -e   : output info when exit function \n");
+    printf("  -b   : stop tracing smaller than <stack_depth> \n");
+    printf("  -d   : stop tracing larger than <stack_depth>\n");
     printf("\n");
 }
 
@@ -71,6 +73,14 @@ int main(int argc,char *argv[])
             case 'f':
                 setenv("FTRACE_FILTER_IGNORE","1",1);
                 setenv("FTRACE_FILTER_IGNORE_PATTERN",   argv[++i], 1);
+                break;
+            case 'd':
+                setenv("FTRACE_FILTER_MAX_DEPTH","1",1);
+                setenv("FTRACE_MAX_DEPTH",   argv[++i], 1);
+                break;
+            case 'b':
+                setenv("FTRACE_FILTER_START_DEPTH","1",1);
+                setenv("FTRACE_START_DEPTH",   argv[++i], 1);
                 break;
             case 'e':
                 setenv("FTRACE_EXIT_OUTPUT","1",1);

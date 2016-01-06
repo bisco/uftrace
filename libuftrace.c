@@ -39,17 +39,17 @@ int opt_pid = 1;
 int opt_threadid = 0;
 int opt_type = 0;
 int opt_filename = 0;
-int opt_ignore = 0;
 int opt_exit = 0;
-int opt_start_depth = 0;
-int opt_max_depth = 0;
 
 static bfd *pbfd = NULL;
 static asymbol **symbols = NULL;
 static int nsymbol = 0;
 
-regex_t preg;
+int opt_ignore = 0;
+regex_t ignore_preg;
 
+int opt_start_depth = 0;
+int opt_max_depth = 0;
 int start_depth = 0;
 int max_depth = 0;
 int cur_depth = 0;
@@ -66,7 +66,7 @@ void ftrace_append_time(GString *line){
                       t.tm_hour, t.tm_min, t.tm_sec, tv.tv_usec);
 }
 
-void ftrace_append_pid(GString *line){
+void ftrace_append_pid(GString *line, int ent_or_exit){
     struct timeval  tv;
     struct timezone tz;
     struct tm t;
@@ -74,15 +74,18 @@ void ftrace_append_pid(GString *line){
     gettimeofday(&tv,&tz);
     localtime_r(&(tv.tv_sec), &t);
 
+    int depth = cur_depth;
+    if(ent_or_exit == FUNC_ENTER) depth--;
+
     if(opt_threadid){
         g_string_append_printf(line, "[%05d.0x%lx] ", getpid(),  (unsigned long)pthread_self());
     }else{
-        g_string_append_printf(line, "[%05d] ", getpid());
+        g_string_append_printf(line, "[%05d:%2d] ", getpid(), depth);
     }
 }
 
 int ignore_filter_match(const char* pattern) {
-    return !(REG_NOMATCH == regexec(&preg, pattern, 0, NULL, 0));
+    return !(REG_NOMATCH == regexec(&ignore_preg, pattern, 0, NULL, 0));
 }
 
 int ftrace_append_filename(GString *line, void* address){
@@ -309,27 +312,20 @@ void init_symbols(){
 }
 
 void init_ignore(const char* pattern){
-    int err = regcomp(&preg, pattern, REG_EXTENDED|REG_ICASE|REG_NOSUB|REG_NEWLINE);
+    int err = regcomp(&ignore_preg, pattern, REG_EXTENDED|REG_ICASE|REG_NOSUB|REG_NEWLINE);
     if(err) {
         perror("regex compile");
         exit(-1);
     }
 }
 
-void init_start_depth(const char* depth) {
-    start_depth = (int)strtol(depth, NULL, 0);
-    if(start_depth == EINVAL || start_depth == ERANGE) {
-        perror("start_depth");
+int init_depth(const char* depth) {
+    int ret = (int)strtol(depth, NULL, 0);
+    if(ret == EINVAL || ret == ERANGE) {
+        perror("init_depth");
         exit(-1);
     }
-}
-
-void init_max_depth(const char* depth) {
-    max_depth = (int)strtol(depth, NULL, 0);
-    if(max_depth == EINVAL || max_depth == ERANGE) {
-        perror("max_depth");
-        exit(-1);
-    }
+    return ret;
 }
 
 void __attribute__((constructor))ftrace_init()
@@ -397,12 +393,12 @@ void __attribute__((constructor))ftrace_init()
 
     if(start_depth_flag) {
         opt_start_depth = 1;
-        init_start_depth(start_depth_env);
+        start_depth = init_depth(start_depth_env);
     }
 
     if(max_depth_flag) {
         opt_max_depth = 1;
-        init_max_depth(max_depth_env);
+        max_depth = init_depth(max_depth_env);
     }
 
     functions = g_hash_table_new((GHashFunc)g_int_hash,
@@ -413,13 +409,12 @@ void __attribute__((constructor))ftrace_init()
 
 void __attribute__((destructor))ftrace_finish()
 {
-    
     prototype_finish(functions);
     g_hash_table_destroy(functions);
     fclose(fp);
 }
 
-void cyg_profile_func_generic(void *this, void *callsite, const char* ent_or_exit)
+void cyg_profile_func_generic(void *this, void *callsite, int ent_or_exit)
 {
     GString *line = g_string_new(NULL);
     int print_ok = 1;
@@ -428,13 +423,17 @@ void cyg_profile_func_generic(void *this, void *callsite, const char* ent_or_exi
         ftrace_append_time(line);
     }
     if(opt_pid){
-        ftrace_append_pid(line);
+        ftrace_append_pid(line, ent_or_exit);
     }
     if(opt_filename) {
         print_ok = ftrace_append_filename(line, this);
     }
     if(opt_exit) {
-        g_string_append_printf(line, "%s", ent_or_exit);
+        if(ent_or_exit == FUNC_ENTER) {
+            g_string_append_printf(line, "%s", "enter ");
+        } else {
+            g_string_append_printf(line, "%s", "exit  ");
+        }
     }
 
     print_ok = ftrace_append_function(line, this);
@@ -451,13 +450,19 @@ void cyg_profile_func_generic(void *this, void *callsite, const char* ent_or_exi
 
 void __cyg_profile_func_enter(void *this, void *callsite)
 {
-    cyg_profile_func_generic(this, callsite, "enter ");
+    cur_depth++;
+    if(opt_start_depth && (cur_depth <= start_depth)) return;
+    if(opt_max_depth && ((cur_depth-1) > max_depth)) return;
+    cyg_profile_func_generic(this, callsite, FUNC_ENTER);
 }
 
 void __cyg_profile_func_exit(void *this, void *callsite)
 {
+    cur_depth--;
+    if(opt_start_depth && (cur_depth < start_depth)) return;
+    if(opt_max_depth && (cur_depth > max_depth)) return;
     if(!opt_exit) return;
-    cyg_profile_func_generic(this, callsite, "exit  ");
+    cyg_profile_func_generic(this, callsite, FUNC_EXIT);
 }
 
 pid_t fork()
@@ -470,7 +475,7 @@ pid_t fork()
         ftrace_append_time(line);
     }
     if(opt_pid){
-        ftrace_append_pid(line);
+        ftrace_append_pid(line, FUNC_ENTER);
     }
     fork_org = dlsym(RTLD_NEXT,"fork");
     pid = (*fork_org)();
@@ -478,7 +483,7 @@ pid_t fork()
         ftrace_append_time(line);
     }
     if(opt_pid){
-        ftrace_append_pid(line);
+        ftrace_append_pid(line, FUNC_EXIT);
     }    
     g_string_append_printf(line, "fork() pid=%d", pid);
     g_string_append_c(line, '\n');
@@ -500,7 +505,7 @@ int pthread_create(pthread_t *thread, pthread_attr_t * attr,
         ftrace_append_time(line);
     }
     if(opt_pid){
-        ftrace_append_pid(line);
+        ftrace_append_pid(line, FUNC_ENTER);
     }
     result=(*pthread_create_org)(thread, attr, start_routine, arg);
     if(thread){
@@ -526,7 +531,7 @@ void pthread_exit(void *retval)
         ftrace_append_time(line);
     }
     if(opt_pid){
-        ftrace_append_pid(line);
+        ftrace_append_pid(line, FUNC_EXIT);
     }
     g_string_append_printf(line, "%-16s: retval=%p", "pthread_exit()", retval);
     g_string_append_c(line, '\n');
